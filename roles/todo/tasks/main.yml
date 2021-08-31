@@ -1,0 +1,23 @@
+---
+# tasks file for todo
+- name: Prepare app folder
+  file:
+    path: ./getting-started
+    state: directory
+
+- name: Download files
+  git:
+    repo: https://github.com/docker/getting-started/
+    dest: ./getting-started
+    force: yes
+
+- name: Create docker compose file from template
+  template:
+    src: docker-compose.j2
+    dest: ./getting-started/docker-compose.yml
+
+- name: Run the docker compose
+  become: true
+  become_user: root
+  docker_compose:
+    project_src: ./getting-started

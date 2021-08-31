@@ -1,0 +1,127 @@
+---
+# tasks file for Docker
+- name: Debian / Ubuntu setup
+  block:
+    - name: Esure old packages are removed
+      package:
+        name:
+          - docker
+          - docker-engine
+          - docker.io
+          - containerd
+          - runc
+        state: absent
+
+    - name: Setup required packages
+      package:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+
+    - name: Setup Docker’s official GPG key
+      apt_key:
+        url: https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}/gpg
+        keyring: /usr/share/keyrings/docker-archive-keyring.gpg
+        state: present
+
+    - name: Setup Docker repo
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/{{ ansible_facts['distribution']  | lower }} {{ ansible_distribution_release }} stable"
+        filename: docker.list
+        state: present
+
+  when: ansible_facts['os_family'] == 'Debian'
+  become: true
+
+- name: RHEL / CentOS setup
+  block:
+    - name: Esure old packages are removed
+      package:
+        name:
+          - docker
+          - docker-client
+          - docker-client-latest
+          - docker-common
+          - docker-latest
+          - docker-latest-logrotate
+          - docker-engine
+          - podman
+          - runc
+        state: absent
+
+    - name: Setup required packages
+      package:
+        name:
+          - yum-utils
+        state: present
+
+    - name: Setup Docker repo
+      yum_repository:
+        name: docker
+        description: docker YUM repo
+        file: docker
+        baseurl: https://download.docker.com/linux/{{ ansible_facts['distribution'] | lower }}/docker-ce.repo
+        gpgcheck: no
+        enabled: yes
+        
+  when: ansible_facts['os_family'] == 'RedHat'
+  become: true
+
+- name: SLES setup
+  block:
+    - name: Esure old packages are removed
+      package:
+        name:
+          - docker
+          - docker-client
+          - docker-client-latest
+          - docker-common
+          - docker-latest
+          - docker-latest-logrotate
+          - docker-engine
+          - runc
+        state: absent
+
+    - name: Setup Docker repo
+      zypper_repository:
+        repo: https://download.docker.com/linux/sles/docker-ce.repo
+        disable_gpg_check: yes
+        state: present
+
+    - name: Setup SELinux repo
+      zypper_repository:
+        repo: "https://download.opensuse.org/repositories/security:SELinux/SLE_15_SP{{ ansible_distribution_release }}/security:SELinux.repo"
+        disable_gpg_check: yes
+        state: present
+
+    - name: Refresh
+      zypper_repository:
+        repo: "*"
+        runrefresh: yes
+
+  when: ansible_facts['os_family'] == 'Suse'
+  become: true
+  become_user: ''
+
+- name: Install Docker packages
+  become: true
+  become_user: ''
+  package:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose
+    state: present
+
+- name: Start docker service
+  become: true
+  become_user: ''
+  service:
+    name: docker
+    state: started
+    enabled: yes

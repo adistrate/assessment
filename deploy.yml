@@ -1,0 +1,4 @@
+- hosts: target
+  gather_facts: yes
+  roles:
+    - role: todo
